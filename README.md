@@ -20,6 +20,22 @@ npm run simulate -- --years 10 --law publicHousing=3   # play a scenario headles
 
 Node 20 or newer is required.
 
+## Run it on Cloudflare Workers
+
+The same game also runs as a Cloudflare Worker (`worker/index.js`). Each game is a Durable
+Object that keeps the simulation and its clock, the leaderboard is a Durable Object with
+SQLite, and the site plus the three.js files it needs are served as static assets from
+`dist/` (built automatically by `scripts/build-worker.mjs`).
+
+```sh
+npm run dev:worker   # local Worker on http://localhost:8787
+npx wrangler login   # once
+npm run deploy       # builds dist/ and deploys
+```
+
+Games are deleted after 6 hours without activity; while the clock runs, a game is saved at
+least every 10 seconds.
+
 ## How to play
 
 | | |
@@ -42,6 +58,9 @@ server/
   sim/config.js     Laws, parameters and initial state  ← tune the game here
   sim/engine.js     The rules (R1…R21), budget, score, news and the view sent to the browser
   scores.js         Leaderboard stored in data/scores.json
+  scoring.js        Score entries and name validation (shared with the Worker)
+worker/index.js     Cloudflare Worker: same API, Durable Objects for games and scores
+wrangler.jsonc      Worker configuration
 public/
   index.html        Page shell and import map
   css/style.css

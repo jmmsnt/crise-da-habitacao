@@ -1,0 +1,24 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "crise-da-habitacao",
+  "main": "worker/index.js",
+  "compatibility_date": "2026-10-20",
+  "build": {
+    "command": "node scripts/build-worker.mjs"
+  },
+  "assets": {
+    "directory": "./dist",
+    "binding": "ASSETS",
+    "run_worker_first": ["/api/*"]
+  },
+  "durable_objects": {
+    "bindings": [
+      { "name": "GAMES", "class_name": "GameSession" },
+      { "name": "SCORES", "class_name": "ScoreBoard" }
+    ]
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["GameSession", "ScoreBoard"] }],
+  "observability": {
+    "enabled": true
+  }
+}

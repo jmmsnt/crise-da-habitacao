@@ -5,7 +5,6 @@
 // (scaled by the chosen speed). If the browser stops polling — tab closed or
 // hidden — the gap is capped, so the game effectively pauses.
 
-import { randomUUID } from 'node:crypto';
 import { createGame, stepDay, setLaw, view, daysInMonth } from './sim/engine.js';
 import { MONTH_MS } from './sim/config.js';
 
@@ -15,8 +14,8 @@ const IDLE_TTL_MS = 6 * 60 * 60 * 1000;
 const MAX_GAMES = 500;
 
 export class Session {
-  constructor() {
-    this.id = randomUUID();
+  constructor(id = globalThis.crypto.randomUUID()) {
+    this.id = id;
     this.state = createGame();
     this.speed = 0; // starts paused until the player presses play
     this.lastTick = Date.now();
@@ -40,6 +39,16 @@ export class Session {
       dayMs = MONTH_MS / daysInMonth(this.state.date);
     }
     if (this.state.status !== 'running') this.speed = 0;
+  }
+
+  // Plain data for storage (used by the Cloudflare Worker's Durable Objects)
+  toJSON() {
+    const { id, state, speed, lastTick, carryMs, lastSeen, scoreSaved } = this;
+    return { id, state, speed, lastTick, carryMs, lastSeen, scoreSaved: !!scoreSaved };
+  }
+
+  static fromJSON(data) {
+    return Object.assign(Object.create(Session.prototype), data);
   }
 
   snapshot() {
