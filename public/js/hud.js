@@ -1,7 +1,7 @@
 // HTML overlay: clock (top left), status (bottom left), region panels (right),
 // news ticker, toast and dialogs. DOM is built once and updated in place.
 
-import { CATEGORY_COLORS, HOUSE_TYPES, PEOPLE_COLORS, slotCounts, streetLevels } from './scenes/kit.js';
+import { CATEGORY_COLORS, HOUSE_TYPES, PEOPLE_COLORS, slotCounts } from './scenes/kit.js';
 import * as fmt from './format.js';
 import { escapeHtml } from './format.js';
 
@@ -70,20 +70,28 @@ export class Status {
         </div>
         <svg viewBox="0 0 76 30" aria-hidden="true"><line x1="0" x2="76" y1="29" y2="29"></line><path data-k="${k}Spark"></path></svg>
       </div>`;
-    root.innerHTML = [
-      metric('money', 'Orçamento do Estado'),
-      metric('services', 'Serviços públicos', '<div class="bar"><span data-k="servicesBar"></span></div>'),
-      metric('homeless', 'Sem casa'),
-      metric('toLive', 'Dinheiro para viver'),
-      metric('inequality', 'Desigualdade de poupança'),
-    ].join('');
+    // On phones the indicators collapse into a one-line header (see style.css)
+    root.innerHTML = `
+      <button class="status-toggle" type="button" aria-expanded="false" data-k="summary"></button>
+      <div class="metrics">${[
+        metric('money', 'Orçamento do Estado'),
+        metric('services', 'Serviços públicos', '<div class="bar"><span data-k="servicesBar"></span></div>'),
+        metric('homeless', 'Sem casa'),
+        metric('toLive', 'Dinheiro para viver'),
+        metric('inequality', 'Desigualdade de poupança'),
+      ].join('')}</div>`;
     this.el = bind(root);
+    this.el.summary.addEventListener('click', () => {
+      const open = root.classList.toggle('open');
+      this.el.summary.setAttribute('aria-expanded', String(open));
+    });
   }
 
   update(state) {
     const ind = state.indicators;
     const hist = state.history;
     const last = state.government.lastMonth;
+    this.el.summary.textContent = `Indicadores · ${fmt.millions(ind.money)} · ${fmt.pct(ind.homelessRate)} sem casa · serviços ${Math.round(ind.publicServices)}`;
     const balance = last ? last.balance : state.government.currentMonthBalance;
     this.el.money.innerHTML = `${fmt.millions(ind.money)}<small class="${balance >= 0 ? 'up-good' : 'up-bad'}">${fmt.signedMillions(balance)}/mês</small>`;
     this.el.moneySpark.setAttribute('d', sparkPath([...hist.map((h) => h.money), ind.money]));
@@ -140,10 +148,6 @@ function dotStyle(cat) {
     : `background:${color}`;
 }
 
-function levelWord(v, words) {
-  return words[Math.min(words.length - 1, Math.floor(v * words.length))];
-}
-
 export class RegionPanel {
   constructor(root, key, { title, kind, blurb }) {
     this.key = key;
@@ -186,12 +190,6 @@ export class RegionPanel {
         <dt>Desigualdade (Gini)</dt><dd data-k="gini"></dd>
       </dl>
       <p class="muted small">Quem não tem casa própria poupa menos: a renda come o que sobraria. Os senhorios e os fundos poupam também as rendas que recebem.</p>
-
-      <h3>Ambiente</h3>
-      <dl class="kv">
-        <dt>Ânimo (qualidade de vida)</dt><dd data-k="mood"></dd>
-        <dt>Lixo nas ruas (gestão do Estado)</dt><dd data-k="trash"></dd>
-      </dl>
 
       <h3>Mercado da habitação</h3>
       <dl class="kv">
@@ -248,10 +246,6 @@ export class RegionPanel {
     this.el.saveLandlord.textContent = fmt.euro(sv.landlord);
     this.el.saveFund.textContent = fmt.euro(sv.fund);
     this.el.gini.textContent = `${Math.round(state.indicators.inequality * 100)} / 100`;
-
-    const street = streetLevels(state);
-    this.el.mood.textContent = levelWord(1 - street.sadness, ['Triste', 'Abatido', 'Sereno', 'Alegre']);
-    this.el.trash.textContent = levelWord(street.trash, ['Ruas limpas', 'Algum lixo', 'Muito lixo', 'Lixo por todo o lado']);
 
     const m = r.market;
     const delta = (v) => `<span class="delta ${v > 0.005 ? 'up-bad' : v < -0.005 ? 'up-good' : 'muted'}">${fmt.signedPct(v)}/ano</span>`;

@@ -7,6 +7,9 @@ import { CityScene } from './scenes/city.js';
 import { CountrysideScene } from './scenes/countryside.js';
 
 const POLL_MS = 1000;
+// Phones and short screens: tab bar at the bottom and the details panel as a bottom sheet (see style.css)
+const COMPACT = window.matchMedia('(max-width: 760px), (max-height: 520px)');
+const SHEET_TITLES = { parliament: 'Leis e orçamento', city: 'Detalhes de Lisboa', countryside: 'Detalhes do Interior' };
 const VIEWS = ['parliament', 'city', 'countryside'];
 
 // --- Rendering -------------------------------------------------------------
@@ -38,7 +41,7 @@ const panels = {
   city: new RegionPanel(section('city'), 'city', {
     title: 'Lisboa',
     kind: 'cidade',
-    blurb: 'Cada edifício representa milhares de casas e cada figura muitos agregados. Inspirado nas colinas, nas fachadas coloridas e nos jacarandás de Lisboa.',
+    blurb: 'Cada edifício representa milhares de casas e cada figura muitos agregados.',
   }),
   countryside: new RegionPanel(section('countryside'), 'countryside', {
     title: 'Interior',
@@ -71,6 +74,7 @@ function setView(next) {
   }
   panels[view].update(state);
   panelEl.scrollTop = 0;
+  sheetToggle.textContent = SHEET_TITLES[view];
   resize();
 }
 
@@ -140,10 +144,20 @@ function resize() {
   const w = window.innerWidth;
   const h = window.innerHeight;
   renderer.setSize(w, h);
-  const side = w > 760 ? panelEl.offsetWidth + 16 : 0;
+  const side = COMPACT.matches ? 0 : panelEl.offsetWidth + 16;
   for (const s of Object.values(scenes)) s.resize(w, h, side);
+  const topbar = document.querySelector('.topbar').getBoundingClientRect();
+  document.documentElement.style.setProperty('--topbar-bottom', `${Math.round(topbar.bottom)}px`);
 }
 window.addEventListener('resize', resize);
+COMPACT.addEventListener('change', resize);
+
+const sheetToggle = panelEl.querySelector('.sheet-toggle');
+sheetToggle.addEventListener('click', () => {
+  const open = panelEl.classList.toggle('open');
+  sheetToggle.setAttribute('aria-expanded', String(open));
+  if (!open) panelEl.scrollTop = 0;
+});
 
 let last = performance.now();
 function frame(now) {

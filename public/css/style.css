@@ -583,6 +583,8 @@ button {
   display: grid;
   place-items: center;
   padding: 16px;
+  overflow-y: auto; /* dialogs taller than small screens can scroll */
+  z-index: 10;
 }
 
 .overlay[hidden] {
@@ -729,55 +731,243 @@ button {
   }
 }
 
-@media (max-width: 760px) {
+/* --- Phones and short screens: tab bar at the bottom, compact clock,
+   indicator chips under it and the details panel as a bottom sheet ----------- */
+
+.sheet-toggle,
+.status-toggle {
+  display: none;
+}
+
+.status .metrics {
+  display: grid;
+  gap: 10px;
+}
+
+@media (max-width: 760px), (max-height: 520px) {
+  .ticker,
+  .kbd,
+  .toplink {
+    display: none;
+  }
+
   .topbar {
+    top: max(8px, env(safe-area-inset-top));
+    left: 8px;
+    right: 8px;
     flex-direction: column;
-    gap: 8px;
+    gap: 6px;
+    z-index: 3;
   }
 
   .clock {
     min-width: 0;
     width: 100%;
+    padding: 8px 12px;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    grid-template-areas: 'date score' 'progress progress' 'controls controls';
+    align-items: center;
+    column-gap: 10px;
   }
 
-  .tabs {
+  .clock-date {
+    grid-area: date;
+    font-size: 17px;
+  }
+
+  .clock-progress {
+    grid-area: progress;
+    margin: 4px 0 6px;
+  }
+
+  .clock-controls {
+    grid-area: controls;
+  }
+
+  .clock-score {
+    grid-area: score;
     margin: 0;
-    width: 100%;
-    overflow-x: auto;
+    padding: 0;
+    border: 0;
+    gap: 8px;
   }
 
-  .panel {
-    top: auto;
-    left: 16px;
-    right: 16px;
-    width: auto;
-    height: 38vh;
+  .speeds button {
+    padding: 3px 7px;
   }
 
+  /* Indicators: a one-line header under the clock; tap to show the chips */
   .status {
-    left: 16px;
-    right: 16px;
-    bottom: calc(38vh + 24px);
+    top: calc(var(--topbar-bottom, 110px) + 6px);
+    bottom: auto;
+    left: 8px;
+    right: 8px;
     width: auto;
-    grid-template-columns: 1fr 1fr;
-    padding: 10px 12px;
+    display: block;
+    padding: 0;
+    background: none;
+    border: 0;
+    box-shadow: none;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    z-index: 2;
   }
 
-  .metric {
-    grid-template-columns: 1fr;
+  .status-toggle {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    padding: 9px 12px;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: var(--card);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    box-shadow: var(--shadow);
+    font-size: 13px;
+    font-weight: 600;
+    text-align: left;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
-  .metric svg {
+  .status-toggle::after {
+    content: '▼';
+    font-size: 11px;
+    color: var(--muted);
+  }
+
+  .status.open .status-toggle::after {
+    content: '▲';
+  }
+
+  .status .metrics {
     display: none;
   }
 
+  .status.open .metrics {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 6px;
+    margin-top: 6px;
+  }
+
+  .metric {
+    display: block;
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 6px 10px;
+    box-shadow: var(--shadow);
+  }
+
+  .metric svg,
+  .metric .bar {
+    display: none;
+  }
+
+  .metric .name {
+    font-size: 9.5px;
+  }
+
   .metric .value {
-    font-size: 17px;
+    font-size: 15px;
   }
 
   .metric .value small {
     display: block;
     margin-left: 0;
+    font-size: 11px;
+  }
+
+  /* Views: always-visible tab bar at the bottom */
+  .tabs {
+    position: fixed;
+    left: 8px;
+    right: 8px;
+    bottom: calc(8px + env(safe-area-inset-bottom));
+    margin: 0;
+    width: auto;
+  }
+
+  .tabs button {
+    flex: 1;
+    justify-content: center;
+    padding: 10px 6px;
+    font-size: 13.5px;
+  }
+
+  /* Details: bottom sheet above the tab bar, closed by default */
+  .panel {
+    top: auto;
+    left: 8px;
+    right: 8px;
+    width: auto;
+    bottom: calc(64px + env(safe-area-inset-bottom));
+    max-height: 46px;
+    overflow: hidden;
+    padding: 0;
+    transition: max-height 0.25s ease;
+    z-index: 1;
+  }
+
+  .panel.open {
+    max-height: max(140px, calc(100dvh - var(--topbar-bottom, 110px) - 150px));
+    overflow-y: auto;
+  }
+
+  .panel > section {
+    padding: 4px 14px 16px;
+  }
+
+  .sheet-toggle {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    width: 100%;
+    border: 0;
+    padding: 12px 14px;
+    background: var(--card);
+    font-weight: 650;
+    text-align: left;
+  }
+
+  .sheet-toggle::after {
+    content: '▲';
+    font-size: 11px;
+    color: var(--muted);
+  }
+
+  .panel.open .sheet-toggle::after {
+    content: '▼';
+  }
+
+  .toast {
+    top: calc(var(--topbar-bottom, 110px) + 52px);
+  }
+
+  .clock-progress {
+    display: none;
+  }
+
+  .overlay .dialog {
+    padding: 18px 18px 20px;
+    font-size: 13.5px;
+  }
+
+  .overlay h1 {
+    font-size: 23px;
+  }
+
+  .final-score span {
+    font-size: 36px;
   }
 }
 

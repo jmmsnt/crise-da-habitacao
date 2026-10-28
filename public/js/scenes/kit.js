@@ -240,6 +240,9 @@ export class BaseScene {
   // scene is centred in the remaining space.
   resize(width, height, panel = 0) {
     this.camera.aspect = (width + panel) / height;
+    // On narrow (portrait) screens keep roughly the horizontal view of a 1.2:1 screen
+    const tan = Math.tan(THREE.MathUtils.degToRad(19));
+    this.camera.fov = this.camera.aspect < 1.2 ? Math.min(75, 2 * THREE.MathUtils.radToDeg(Math.atan((tan * 1.2) / this.camera.aspect))) : 38;
     if (panel > 0) this.camera.setViewOffset(width + panel, height, panel, 0, width, height);
     else this.camera.clearViewOffset();
     this.camera.updateProjectionMatrix();
